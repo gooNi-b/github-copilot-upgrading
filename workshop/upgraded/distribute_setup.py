@@ -19,7 +19,9 @@ import time
 import fnmatch
 import tempfile
 import tarfile
-from distutils import log
+import logging
+log = logging.getLogger("distribute_setup")
+logging.basicConfig(level=logging.WARNING)
 
 try:
     from site import USER_SITE
@@ -429,7 +431,6 @@ def _extractall(self, path=".", members=None):
     """
     import copy
     import operator
-    from tarfile import ExtractError
     directories = []
 
     if members is None:
@@ -440,7 +441,7 @@ def _extractall(self, path=".", members=None):
             # Extract directories with a safe mode.
             directories.append(tarinfo)
             tarinfo = copy.copy(tarinfo)
-            tarinfo.mode = 448 # decimal for oct 0700
+            tarinfo.mode = 0o700
         self.extract(tarinfo, path)
 
     # Reverse sort directories.
@@ -452,19 +453,7 @@ def _extractall(self, path=".", members=None):
     else:
         directories.sort(key=operator.attrgetter('name'), reverse=True)
 
-    # Set correct owner, mtime and filemode on directories.
-    for tarinfo in directories:
-        dirpath = os.path.join(path, tarinfo.name)
-        try:
-            self.chown(tarinfo, dirpath)
-            self.utime(tarinfo, dirpath)
-            self.chmod(tarinfo, dirpath)
-        except ExtractError:
-            e = sys.exc_info()[1]
-            if self.errorlevel > 1:
-                raise
-            else:
-                self._dbg(1, "tarfile: %s" % e)
+    # Python 3에서는 chown, utime, chmod 등 tarfile의 디렉터리 속성 설정을 생략합니다.
 
 
 def main(argv, version=DEFAULT_VERSION):
